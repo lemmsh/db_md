@@ -44,10 +44,12 @@ def send_to_telegram(text, set_title = False):
     bot = telegram.Bot(token=token)
     if (set_title):
         print(f'setting telegram chat title to {text}')
-        bot.set_chat_title(chat_id, text)
+        resp = bot.set_chat_title(chat_id, text)
+        print(resp)
     else:
         print(f'sending to telegram chat {text}')
-        bot.send_message(chat_id, text)
+        resp = bot.send_message(chat_id, text)
+        print(resp)
 
 def send_xetra():
     try:
