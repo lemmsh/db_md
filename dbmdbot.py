@@ -62,8 +62,8 @@ def send_xetra():
 def send_nyse():
     try:
         citi = extract_md('C')
-        bofa = extract_md('BAC')
-        send_to_telegram(f'{citi} / {bofa}', set_title = False)
+        bcs = extract_md('BCS')
+        send_to_telegram(f'{citi} / {bcs}', set_title = False)
         return "nyse market data published"
     except Exception as inst: 
         return inst
@@ -76,6 +76,13 @@ def send_nasdaqgs():
     except Exception as inst: 
         return inst
 
+def send_euronext():
+    try:
+        text = extract_md('BNP.PA')
+        send_to_telegram(text, set_title = False)
+        return "euronext market data published"
+    except Exception as inst: 
+        return inst
 
 
 def market_data(event, context):
@@ -92,6 +99,8 @@ def market_data(event, context):
         return send_nyse()
     elif (pubsub_message == 'NASDAQGS'):
         return send_nasdaqgs()
+    elif (pubsub_message == 'EURONEXT'):
+        return send_euronext()
     else:
         return f"unknown exchange: {pubsub_message}"
 
