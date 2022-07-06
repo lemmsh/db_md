@@ -83,8 +83,8 @@ def send_nyse():
 
 def send_nasdaqgs():
     try:
-        text = extract_md('YNDX')
-        send_to_telegram(text, set_title=False)
+        #text = extract_md('YNDX')
+        #send_to_telegram(text, set_title=False)
         return "nasdaq market data published"
     except Exception as inst:
         return inst
