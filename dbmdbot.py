@@ -123,7 +123,7 @@ def market_data(exchange):
 update_times = {
     'XETRA': {
         # 'time': '45 17 * * 1-5',
-        'time': '30 18 * * 1-7',
+        'time': '45 19 * * 1-7',
         'zone': 'Europe/Berlin'
     }
 }
@@ -143,12 +143,9 @@ def check_cron_expression(unix_time):
         local_rounded_time_minus_one_minute = local_rounded_time - timedelta(minutes=1)
         cron = croniter(data['time'], local_rounded_time_minus_one_minute, ret_type=datetime, day_or=False)
         next_cron_time = cron.get_next(ret_type=datetime)
-        # print(local_rounded_time_minus_one_minute)
-        # print(local_rounded_time)
-        # print(next_cron_time)
-        # print((next_cron_time - local_rounded_time).total_seconds())
         if abs((next_cron_time - local_rounded_time).total_seconds()) < 120:
             print(f"Cron expression triggered for {ticker} at {local_rounded_time} in {data['zone']} timezone")
+            market_data(ticker)
 
 
 if __name__ == "__main__":
