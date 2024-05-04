@@ -2,7 +2,10 @@ import datetime as dt
 
 import telegram
 import yfinance as yf
-import base64
+import pytz
+from croniter import croniter
+from datetime import datetime
+from datetime import timedelta
 
 
 def _is_xetra_holiday(d: dt.date):
@@ -99,23 +102,59 @@ def send_euronext():
         return inst
 
 
-def market_data(event, context):
-    """Triggered from a message on a Cloud Pub/Sub topic.
-    Args:
-         event (dict): Event payload.
-         context (google.cloud.functions.Context): Metadata for the event.
-    """
-    pubsub_message = base64.b64decode(event['data']).decode('utf-8')
-    print(f"processing {pubsub_message}")
-    if (pubsub_message == 'XETRA'):
+def market_data(exchange):
+    print(f"processing {exchange}")
+    if (exchange == 'XETRA'):
         return send_xetra()
-    elif (pubsub_message == 'NYSE'):
+    elif (exchange == 'NYSE'):
         return send_nyse()
-    elif (pubsub_message == 'NASDAQGS'):
+    elif (exchange == 'NASDAQGS'):
         return send_nasdaqgs()
-    elif (pubsub_message == 'EURONEXT'):
+    elif (exchange == 'EURONEXT'):
         return send_euronext()
-    elif (pubsub_message == 'LSE'):
+    elif (exchange == 'LSE'):
         return send_lse()
     else:
-        return f"unknown exchange: {pubsub_message}"
+        return f"unknown exchange: {exchange}"
+
+
+update_times = {
+    'XETRA': {
+        # 'time': '45 17 * * 1-5',
+        'time': '30 18 * * 1-7',
+        'zone': 'Europe/Berlin'
+    }
+}
+
+
+def round_to_nearest_15_minutes(unix_time):
+    dt = datetime.utcfromtimestamp(unix_time)
+    dt = dt.replace(second=0, microsecond=0)
+    minute = (dt.minute // 15) * 15
+    return dt.replace(minute=minute)
+
+def check_cron_expression(unix_time):
+    rounded_time = round_to_nearest_15_minutes(unix_time)
+    for ticker, data in update_times.items():
+        tz = pytz.timezone(data['zone'])
+        local_rounded_time = tz.normalize(rounded_time.replace(tzinfo=pytz.utc).astimezone(tz))
+        local_rounded_time_minus_one_minute = local_rounded_time - timedelta(minutes=1)
+        cron = croniter(data['time'], local_rounded_time_minus_one_minute, ret_type=datetime, day_or=False)
+        next_cron_time = cron.get_next(ret_type=datetime)
+        # print(local_rounded_time_minus_one_minute)
+        # print(local_rounded_time)
+        # print(next_cron_time)
+        # print((next_cron_time - local_rounded_time).total_seconds())
+        if abs((next_cron_time - local_rounded_time).total_seconds()) < 120:
+            print(f"Cron expression triggered for {ticker} at {local_rounded_time} in {data['zone']} timezone")
+
+
+if __name__ == "__main__":
+    import time
+    current_unix_time = int(time.time())
+    check_cron_expression(current_unix_time)
+
+
+
+
+
