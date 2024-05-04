@@ -79,6 +79,8 @@ def send_nyse():
     try:
         text = extract_md('C')
         send_to_telegram(text, set_title=False)
+        text = extract_md('PHK')
+        send_to_telegram(text, set_title=False)
         return "nyse market data published"
     except Exception as inst:
         return inst
