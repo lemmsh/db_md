@@ -126,14 +126,16 @@ def round_to_nearest_15_minutes(unix_time):
 
 async def check_exchanges(unix_time, bot):
     rounded_time = round_to_nearest_15_minutes(unix_time)
+    time = datetime.utcfromtimestamp(unix_time)
     await bot.initialize()
     for ticker, data in update_times.items():
         tz = pytz.timezone(data['zone'])
+        local_time = tz.normalize(time.replace(tzinfo=pytz.utc).astimezone(tz))
         local_rounded_time = tz.normalize(rounded_time.replace(tzinfo=pytz.utc).astimezone(tz))
         local_rounded_time_minus_one_minute = local_rounded_time - timedelta(minutes=1)
         cron = croniter(data['time'], local_rounded_time_minus_one_minute, ret_type=datetime, day_or=False)
         next_cron_time = cron.get_next(ret_type=datetime)
-        if abs((next_cron_time - local_rounded_time).total_seconds()) < 120:
+        if (next_cron_time < local_time and next_cron_time >= local_rounded_time):
             print(f"Cron expression triggered for {ticker} at {local_rounded_time} in {data['zone']} timezone")
             result = await market_data(ticker, bot)
             print(result)
