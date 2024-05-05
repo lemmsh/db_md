@@ -87,13 +87,13 @@ async def send_euronext(bot):
 async def market_data(exchange, bot):
     print(f"processing {exchange}")
     if (exchange == 'XETRA'):
-        return send_xetra(bot)
+        return await send_xetra(bot)
     elif (exchange == 'NYSE'):
         return await send_nyse(bot)
     elif (exchange == 'EURONEXT'):
-        return send_euronext(bot)
+        return await send_euronext(bot)
     elif (exchange == 'LSE'):
-        return send_lse(bot)
+        return await send_lse(bot)
     else:
         return f"unknown exchange: {exchange}"
 
