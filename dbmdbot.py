@@ -58,15 +58,15 @@ async def send_to_telegram(text, bot, set_title=False):
         print(resp)
 
 
-def send_xetra(bot):
+async def send_xetra(bot):
     text = db_market_data()
-    send_to_telegram(text, bot, set_title=True)
+    await send_to_telegram(text, bot, set_title=True)
     return "xetra market data published"
 
 
-def send_lse(bot):
+async def send_lse(bot):
     text = extract_md('BARC.L')
-    send_to_telegram(text, bot, set_title=False)
+    await send_to_telegram(text, bot, set_title=False)
     return "lse market data published"
 
 
@@ -78,9 +78,9 @@ async def send_nyse(bot):
     return "nyse market data published"
 
 
-def send_euronext(bot):
+async def send_euronext(bot):
     text = extract_md('BNP.PA')
-    send_to_telegram(text, bot, set_title=False)
+    await send_to_telegram(text, bot, set_title=False)
     return "euronext market data published"
 
 
