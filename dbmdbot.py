@@ -6,6 +6,11 @@ import pytz
 from croniter import croniter
 from datetime import datetime
 from datetime import timedelta
+import asyncio
+import time
+import os
+import bot_request
+
 
 
 def _is_xetra_holiday(d: dt.date):
@@ -42,89 +47,73 @@ def db_market_data():
     return extract_md('DBK.DE')
 
 
-def send_to_telegram(text, set_title=False):
-    import os
-    token = os.getenv('TELEGRAM_TOKEN')
-    chat_id = os.getenv('TELEGRAM_CHAT_ID')
-    bot = telegram.Bot(token=token)
+async def send_to_telegram(text, bot, set_title=False):
     if set_title:
         print(f'setting telegram chat title to {text}')
-        resp = bot.set_chat_title(chat_id, text)
+        resp = await bot.set_chat_title(chat_id, text, write_timeout = 60, connect_timeout = 60)
         print(resp)
     else:
         print(f'sending to telegram chat {text}')
-        resp = bot.send_message(chat_id, text)
+        resp = await bot.send_message(chat_id, text, write_timeout = 60, connect_timeout = 60)
         print(resp)
 
 
-def send_xetra():
-    try:
-        text = db_market_data()
-        send_to_telegram(text, set_title=True)
-        return "xetra market data published"
-    except Exception as inst:
-        return inst
+def send_xetra(bot):
+    text = db_market_data()
+    send_to_telegram(text, bot, set_title=True)
+    return "xetra market data published"
 
 
-def send_lse():
-    try:
-        text = extract_md('BARC.L')
-        send_to_telegram(text, set_title=False)
-        return "lse market data published"
-    except Exception as inst:
-        return inst
+def send_lse(bot):
+    text = extract_md('BARC.L')
+    send_to_telegram(text, bot, set_title=False)
+    return "lse market data published"
 
 
-def send_nyse():
-    try:
-        text = extract_md('C')
-        send_to_telegram(text, set_title=False)
-        text = extract_md('PHK')
-        send_to_telegram(text, set_title=False)
-        return "nyse market data published"
-    except Exception as inst:
-        return inst
+async def send_nyse(bot):
+    text = extract_md('C')
+    await send_to_telegram(text, bot, set_title=False)
+    text = extract_md('PHK')
+    await send_to_telegram(text, bot, set_title=False)
+    return "nyse market data published"
 
 
-def send_nasdaqgs():
-    try:
-        #text = extract_md('YNDX')
-        #send_to_telegram(text, set_title=False)
-        return "nasdaq market data published"
-    except Exception as inst:
-        return inst
+def send_euronext(bot):
+    text = extract_md('BNP.PA')
+    send_to_telegram(text, bot, set_title=False)
+    return "euronext market data published"
 
 
-def send_euronext():
-    try:
-        text = extract_md('BNP.PA')
-        send_to_telegram(text, set_title=False)
-        return "euronext market data published"
-    except Exception as inst:
-        return inst
-
-
-def market_data(exchange):
+async def market_data(exchange, bot):
     print(f"processing {exchange}")
     if (exchange == 'XETRA'):
-        return send_xetra()
+        return send_xetra(bot)
     elif (exchange == 'NYSE'):
-        return send_nyse()
-    elif (exchange == 'NASDAQGS'):
-        return send_nasdaqgs()
+        return await send_nyse(bot)
     elif (exchange == 'EURONEXT'):
-        return send_euronext()
+        return send_euronext(bot)
     elif (exchange == 'LSE'):
-        return send_lse()
+        return send_lse(bot)
     else:
         return f"unknown exchange: {exchange}"
 
 
 update_times = {
     'XETRA': {
-        # 'time': '45 17 * * 1-5',
-        'time': '45 19 * * 1-7',
+        'time': '45 17 * * 1-5',
         'zone': 'Europe/Berlin'
+    },
+    'NYSE': {
+        'time': '15 16 * * 1-5',
+        'zone': 'America/New_York'
+    },
+    'LSE': {
+        'time': '15 17 * * 1-5',
+        'zone': 'Europe/London'
+    },
+    'EURONEXT': {
+        'time': '15 17 * * 1-5',
+        'zone': 'Europe/Amsterdam'
     }
 }
 
@@ -135,8 +124,9 @@ def round_to_nearest_15_minutes(unix_time):
     minute = (dt.minute // 15) * 15
     return dt.replace(minute=minute)
 
-def check_cron_expression(unix_time):
+async def check_exchanges(unix_time, bot):
     rounded_time = round_to_nearest_15_minutes(unix_time)
+    await bot.initialize()
     for ticker, data in update_times.items():
         tz = pytz.timezone(data['zone'])
         local_rounded_time = tz.normalize(rounded_time.replace(tzinfo=pytz.utc).astimezone(tz))
@@ -145,13 +135,18 @@ def check_cron_expression(unix_time):
         next_cron_time = cron.get_next(ret_type=datetime)
         if abs((next_cron_time - local_rounded_time).total_seconds()) < 120:
             print(f"Cron expression triggered for {ticker} at {local_rounded_time} in {data['zone']} timezone")
-            market_data(ticker)
+            result = await market_data(ticker, bot)
+            print(result)
+    await bot.shutdown()
+
 
 
 if __name__ == "__main__":
-    import time
+    token = os.getenv('TELEGRAM_TOKEN')
+    chat_id = os.getenv('TELEGRAM_CHAT_ID')
+    bot = telegram.Bot(token=token, request = bot_request.MDHTTPXRequest())
     current_unix_time = int(time.time())
-    check_cron_expression(current_unix_time)
+    asyncio.run(check_exchanges(current_unix_time, bot))
 
 
 
