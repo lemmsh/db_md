@@ -10,7 +10,11 @@ import asyncio
 import time
 import os
 import bot_request
+import sys
 
+
+token = os.getenv('TELEGRAM_TOKEN')
+chat_id = os.getenv('TELEGRAM_CHAT_ID')
 
 
 def _is_xetra_holiday(d: dt.date):
@@ -84,18 +88,21 @@ async def send_euronext(bot):
     return "euronext market data published"
 
 
-async def market_data(exchange, bot):
+async def market_data(exchange):
+    bot = telegram.Bot(token=token, request = bot_request.MDHTTPXRequest())
+    await bot.initialize()
     print(f"processing {exchange}")
     if (exchange == 'XETRA'):
-        return await send_xetra(bot)
+        await send_xetra(bot)
     elif (exchange == 'NYSE'):
-        return await send_nyse(bot)
+        await send_nyse(bot)
     elif (exchange == 'EURONEXT'):
-        return await send_euronext(bot)
+        await send_euronext(bot)
     elif (exchange == 'LSE'):
-        return await send_lse(bot)
+        await send_lse(bot)
     else:
-        return f"unknown exchange: {exchange}"
+        print(f"unknown exchange: {exchange}")
+    await bot.shutdown()
 
 
 update_times = {
@@ -124,10 +131,9 @@ def round_to_nearest_15_minutes(unix_time):
     minute = (dt.minute // 15) * 15
     return dt.replace(minute=minute)
 
-async def check_exchanges(unix_time, bot):
+def check_exchanges(unix_time):
     rounded_time = round_to_nearest_15_minutes(unix_time)
     time = datetime.utcfromtimestamp(unix_time)
-    await bot.initialize()
     for ticker, data in update_times.items():
         tz = pytz.timezone(data['zone'])
         local_time = tz.normalize(time.replace(tzinfo=pytz.utc).astimezone(tz))
@@ -137,18 +143,19 @@ async def check_exchanges(unix_time, bot):
         next_cron_time = cron.get_next(ret_type=datetime)
         if (next_cron_time < local_time and next_cron_time >= local_rounded_time):
             print(f"Cron expression triggered for {ticker} at {local_rounded_time} in {data['zone']} timezone")
-            result = await market_data(ticker, bot)
+            result = asyncio.run(market_data(ticker))
             print(result)
-    await bot.shutdown()
+
 
 
 
 if __name__ == "__main__":
-    token = os.getenv('TELEGRAM_TOKEN')
-    chat_id = os.getenv('TELEGRAM_CHAT_ID')
-    bot = telegram.Bot(token=token, request = bot_request.MDHTTPXRequest())
     current_unix_time = int(time.time())
-    asyncio.run(check_exchanges(current_unix_time, bot))
+    exchange = sys.argv[1] if len(sys.argv) > 1 else None
+    asyncio.run(market_data(exchange))
+    #check_exchanges(current_unix_time)
+
+    
 
 
 
