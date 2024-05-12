@@ -1,0 +1,9 @@
+[Unit]
+Description=MDBOT timer: NYSE
+
+[Timer]
+OnCalendar=Mon..Fri *-*-* 16:15:00 America/New_York
+
+[Install]
+WantedBy=timers.target
+

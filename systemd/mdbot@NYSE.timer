@@ -2,6 +2,4 @@
 Description=MDBOT timer: NYSE
 
 [Timer]
-OnActiveSec=0s
-OnUnitActiveSec=10s
-AccuracySec=0s
+OnCalendar=Mon..Fri *-*-* 16:30:00 America/New_York
