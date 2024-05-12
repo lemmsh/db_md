@@ -1,0 +1,7 @@
+[Unit]
+Description=MDBOT timer: NYSE
+
+[Timer]
+OnActiveSec=0s
+OnUnitActiveSec=10s
+AccuracySec=0s
