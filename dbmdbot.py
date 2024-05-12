@@ -105,55 +105,11 @@ async def market_data(exchange):
     await bot.shutdown()
 
 
-update_times = {
-    'XETRA': {
-        'time': '45 17 * * 1-5',
-        'zone': 'Europe/Berlin'
-    },
-    'NYSE': {
-        'time': '15 16 * * 1-5',
-        'zone': 'America/New_York'
-    },
-    'LSE': {
-        'time': '15 17 * * 1-5',
-        'zone': 'Europe/London'
-    },
-    'EURONEXT': {
-        'time': '15 17 * * 1-5',
-        'zone': 'Europe/Amsterdam'
-    }
-}
-
-
-def round_to_nearest_15_minutes(unix_time):
-    dt = datetime.utcfromtimestamp(unix_time)
-    dt = dt.replace(second=0, microsecond=0)
-    minute = (dt.minute // 15) * 15
-    return dt.replace(minute=minute)
-
-def check_exchanges(unix_time):
-    rounded_time = round_to_nearest_15_minutes(unix_time)
-    time = datetime.utcfromtimestamp(unix_time)
-    for ticker, data in update_times.items():
-        tz = pytz.timezone(data['zone'])
-        local_time = tz.normalize(time.replace(tzinfo=pytz.utc).astimezone(tz))
-        local_rounded_time = tz.normalize(rounded_time.replace(tzinfo=pytz.utc).astimezone(tz))
-        local_rounded_time_minus_one_minute = local_rounded_time - timedelta(minutes=1)
-        cron = croniter(data['time'], local_rounded_time_minus_one_minute, ret_type=datetime, day_or=False)
-        next_cron_time = cron.get_next(ret_type=datetime)
-        if (next_cron_time < local_time and next_cron_time >= local_rounded_time):
-            print(f"Cron expression triggered for {ticker} at {local_rounded_time} in {data['zone']} timezone")
-            result = asyncio.run(market_data(ticker))
-            print(result)
-
-
-
 
 if __name__ == "__main__":
     current_unix_time = int(time.time())
     exchange = sys.argv[1] if len(sys.argv) > 1 else None
     asyncio.run(market_data(exchange))
-    #check_exchanges(current_unix_time)
 
     
 
