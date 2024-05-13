@@ -1,5 +1,5 @@
 [Unit]
-Description=MDBOT timer: NYSE
+Description=MDBOT timer: LSE
 
 [Timer]
 OnCalendar=Mon..Fri *-*-* 17:15:00 Europe/London

@@ -1,8 +1,8 @@
 [Unit]
-Description=MDBOT timer: NYSE
+Description=MDBOT timer: XETRA
 
 [Timer]
-OnCalendar=Mon..Fri *-*-* 17:45:00 Europe/Berlin
+OnCalendar=Mon..Fri *-*-* 17:55:00 Europe/Berlin
 
 [Install]
 WantedBy=timers.target

@@ -2,7 +2,7 @@
 Description=MDBOT timer: NYSE
 
 [Timer]
-OnCalendar=Mon..Fri *-*-* 16:15:00 America/New_York
+OnCalendar=Mon..Fri *-*-* 16:25:00 America/New_York
 
 [Install]
 WantedBy=timers.target

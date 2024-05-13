@@ -1,8 +1,8 @@
 [Unit]
-Description=MDBOT timer: NYSE
+Description=MDBOT timer: EURONEXT
 
 [Timer]
-OnCalendar=Mon..Fri *-*-* 17:45:00 Europe/Amsterdam
+OnCalendar=Mon..Fri *-*-* 17:55:00 Europe/Amsterdam
 
 [Install]
 WantedBy=timers.target
