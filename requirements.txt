@@ -1,0 +1,8 @@
+yfinance
+croniter
+python-telegram-bot
+python-decouple
+
+
+
+

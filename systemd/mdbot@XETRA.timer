@@ -1,0 +1,9 @@
+[Unit]
+Description=MDBOT timer: XETRA
+
+[Timer]
+OnCalendar=Mon..Fri *-*-* 17:55:00 Europe/Berlin
+
+[Install]
+WantedBy=timers.target
+

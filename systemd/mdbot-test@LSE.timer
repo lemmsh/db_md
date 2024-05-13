@@ -1,0 +1,9 @@
+[Unit]
+Description=MDBOT timer: LSE
+
+[Timer]
+OnCalendar=Mon..Fri *-*-* 17:15:00 Europe/London
+
+[Install]
+WantedBy=timers.target
+

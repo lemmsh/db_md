@@ -1,0 +1,9 @@
+[Unit]
+Description=MDBOT timer: EURONEXT
+
+[Timer]
+OnCalendar=Mon..Fri *-*-* 17:55:00 Europe/Amsterdam
+
+[Install]
+WantedBy=timers.target
+

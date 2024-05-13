@@ -1,0 +1,5 @@
+[Unit]
+Description=MDBOT: %i
+
+[Service]
+ExecStart=/usr/bin/mdbot %i

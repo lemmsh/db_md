@@ -2,7 +2,19 @@ import datetime as dt
 
 import telegram
 import yfinance as yf
-import base64
+import pytz
+from croniter import croniter
+from datetime import datetime
+from datetime import timedelta
+import asyncio
+import time
+import os
+import bot_request
+import sys
+
+
+token = os.getenv('TELEGRAM_TOKEN')
+chat_id = os.getenv('TELEGRAM_CHAT_ID')
 
 
 def _is_xetra_holiday(d: dt.date):
@@ -39,85 +51,69 @@ def db_market_data():
     return extract_md('DBK.DE')
 
 
-def send_to_telegram(text, set_title=False):
-    import os
-    token = os.getenv('TELEGRAM_TOKEN')
-    chat_id = os.getenv('TELEGRAM_CHAT_ID')
-    bot = telegram.Bot(token=token)
+async def send_to_telegram(text, bot, set_title=False):
     if set_title:
         print(f'setting telegram chat title to {text}')
-        resp = bot.set_chat_title(chat_id, text)
+        resp = await bot.set_chat_title(chat_id, text, write_timeout = 60, connect_timeout = 60)
         print(resp)
     else:
         print(f'sending to telegram chat {text}')
-        resp = bot.send_message(chat_id, text)
+        resp = await bot.send_message(chat_id, text, write_timeout = 60, connect_timeout = 60)
         print(resp)
 
 
-def send_xetra():
-    try:
-        text = db_market_data()
-        send_to_telegram(text, set_title=True)
-        return "xetra market data published"
-    except Exception as inst:
-        return inst
+async def send_xetra(bot):
+    text = db_market_data()
+    await send_to_telegram(text, bot, set_title=True)
+    return "xetra market data published"
 
 
-def send_lse():
-    try:
-        text = extract_md('BARC.L')
-        send_to_telegram(text, set_title=False)
-        return "lse market data published"
-    except Exception as inst:
-        return inst
+async def send_lse(bot):
+    text = extract_md('BARC.L')
+    await send_to_telegram(text, bot, set_title=False)
+    return "lse market data published"
 
 
-def send_nyse():
-    try:
-        text = extract_md('C')
-        send_to_telegram(text, set_title=False)
-        text = extract_md('PHK')
-        send_to_telegram(text, set_title=False)
-        return "nyse market data published"
-    except Exception as inst:
-        return inst
+async def send_nyse(bot):
+    text = extract_md('C')
+    await send_to_telegram(text, bot, set_title=False)
+    text = extract_md('PHK')
+    await send_to_telegram(text, bot, set_title=False)
+    return "nyse market data published"
 
 
-def send_nasdaqgs():
-    try:
-        #text = extract_md('YNDX')
-        #send_to_telegram(text, set_title=False)
-        return "nasdaq market data published"
-    except Exception as inst:
-        return inst
+async def send_euronext(bot):
+    text = extract_md('BNP.PA')
+    await send_to_telegram(text, bot, set_title=False)
+    return "euronext market data published"
 
 
-def send_euronext():
-    try:
-        text = extract_md('BNP.PA')
-        send_to_telegram(text, set_title=False)
-        return "euronext market data published"
-    except Exception as inst:
-        return inst
-
-
-def market_data(event, context):
-    """Triggered from a message on a Cloud Pub/Sub topic.
-    Args:
-         event (dict): Event payload.
-         context (google.cloud.functions.Context): Metadata for the event.
-    """
-    pubsub_message = base64.b64decode(event['data']).decode('utf-8')
-    print(f"processing {pubsub_message}")
-    if (pubsub_message == 'XETRA'):
-        return send_xetra()
-    elif (pubsub_message == 'NYSE'):
-        return send_nyse()
-    elif (pubsub_message == 'NASDAQGS'):
-        return send_nasdaqgs()
-    elif (pubsub_message == 'EURONEXT'):
-        return send_euronext()
-    elif (pubsub_message == 'LSE'):
-        return send_lse()
+async def market_data(exchange):
+    bot = telegram.Bot(token=token, request = bot_request.MDHTTPXRequest())
+    await bot.initialize()
+    print(f"processing {exchange}")
+    if (exchange == 'XETRA'):
+        await send_xetra(bot)
+    elif (exchange == 'NYSE'):
+        await send_nyse(bot)
+    elif (exchange == 'EURONEXT'):
+        await send_euronext(bot)
+    elif (exchange == 'LSE'):
+        await send_lse(bot)
     else:
-        return f"unknown exchange: {pubsub_message}"
+        print(f"unknown exchange: {exchange}")
+    await bot.shutdown()
+
+
+
+if __name__ == "__main__":
+    current_unix_time = int(time.time())
+    exchange = sys.argv[1] if len(sys.argv) > 1 else None
+    asyncio.run(market_data(exchange))
+
+    
+
+
+
+
+
